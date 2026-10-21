@@ -5,7 +5,6 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 
 import { Throttle } from '@nestjs/throttler';
@@ -15,8 +14,6 @@ import { SlotsService } from './slots.service';
 import { CreateSlotDto } from './dto/create-slot.dto';
 import { BookSlotDto } from './dto/book-slot.dto';
 
-import { HostKeyGuard } from './guards/host-key.guard';
-
 @Controller('slots')
 export class SlotsController {
   constructor(
@@ -24,7 +21,6 @@ export class SlotsController {
   ) {}
 
   @Post()
-  @UseGuards(HostKeyGuard)
   @Throttle({
     default: {
       limit: 5,

@@ -122,13 +122,10 @@ export const slotsApi = {
       signal,
     })
   },
-
-  create(payload: CreateSlotPayload, hostKey: string) {
+  
+  create(payload: CreateSlotPayload) {
     return request<Slot>('/slots', {
       method: 'POST',
-      headers: {
-        'X-Host-Key': hostKey,
-      },
       body: JSON.stringify(payload),
     })
   },

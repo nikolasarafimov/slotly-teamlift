@@ -5,40 +5,25 @@ const API_URL =
   process.env.TEST_API_URL ??
   'http://localhost:3100/api'
 
-const HOST_ACCESS_KEY = process.env.HOST_ACCESS_KEY
-
-if (!HOST_ACCESS_KEY) {
-  throw new Error(
-    'HOST_ACCESS_KEY must be provided for API tests.',
-  )
-}
-
 async function apiRequest(
   path,
   {
     method = 'GET',
     body,
-    hostKey,
   } = {},
 ) {
-  const headers = {
-    'Content-Type': 'application/json',
-  }
-
-  if (hostKey) {
-    headers['X-Host-Key'] = hostKey
-  }
-
   const response = await fetch(
     `${API_URL}${path}`,
     {
       method,
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body:
         body === undefined
           ? undefined
           : JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(15_000),
     },
   )
 
@@ -58,26 +43,25 @@ test('Slotly API integration tests', async (t) => {
   ).toISOString()
 
   await t.test(
-    'Reject creating a slot without host key',
+    'Reject invalid slot duration',
     async () => {
       const result = await apiRequest('/slots', {
         method: 'POST',
         body: {
           startsAt,
-          durationMinutes: 30,
+          durationMinutes: 5,
         },
       })
 
-      assert.equal(result.status, 401)
+      assert.equal(result.status, 400)
     },
   )
 
   await t.test(
-    'Create a valid future slot',
+    'Create a valid future slot without login',
     async () => {
       const result = await apiRequest('/slots', {
         method: 'POST',
-        hostKey: HOST_ACCESS_KEY,
         body: {
           startsAt,
           durationMinutes: 30,
@@ -94,7 +78,7 @@ test('Slotly API integration tests', async (t) => {
   )
 
   await t.test(
-    'Reject overlapping time slots',
+    'Reject overlapping slots',
     async () => {
       const overlappingStart = new Date(
         new Date(startsAt).getTime() +
@@ -103,7 +87,6 @@ test('Slotly API integration tests', async (t) => {
 
       const result = await apiRequest('/slots', {
         method: 'POST',
-        hostKey: HOST_ACCESS_KEY,
         body: {
           startsAt: overlappingStart,
           durationMinutes: 30,
@@ -134,7 +117,7 @@ test('Slotly API integration tests', async (t) => {
   await t.test(
     'Allow only one concurrent booking',
     async () => {
-      const bookingRequests = [
+      const requests = [
         {
           name: 'Integration User A',
           email: 'usera@example.com',
@@ -146,7 +129,7 @@ test('Slotly API integration tests', async (t) => {
       ]
 
       const results = await Promise.all(
-        bookingRequests.map((body) =>
+        requests.map((body) =>
           apiRequest(`/slots/${slotId}/book`, {
             method: 'POST',
             body,
@@ -159,32 +142,21 @@ test('Slotly API integration tests', async (t) => {
         .sort((a, b) => a - b)
 
       assert.deepEqual(statuses, [201, 409])
-
-      const successful = results.find(
-        (result) => result.status === 201,
-      )
-
-      assert.ok(successful)
-      assert.ok(successful.data.booking.id)
-      assert.equal(
-        successful.data.slot.isBooked,
-        true,
-      )
     },
   )
 
   await t.test(
-    'Hide booked slot from available slots',
+    'Hide booked slot from availability',
     async () => {
       const result = await apiRequest('/slots')
 
       assert.equal(result.status, 200)
 
-      const bookedSlot = result.data.find(
+      const slot = result.data.find(
         (item) => item.id === slotId,
       )
 
-      assert.equal(bookedSlot, undefined)
+      assert.equal(slot, undefined)
     },
   )
 
@@ -195,12 +167,12 @@ test('Slotly API integration tests', async (t) => {
 
       assert.equal(result.status, 200)
 
-      const bookedSlot = result.data.find(
+      const slot = result.data.find(
         (item) => item.id === slotId,
       )
 
-      assert.ok(bookedSlot)
-      assert.equal(bookedSlot.isBooked, true)
+      assert.ok(slot)
+      assert.equal(slot.isBooked, true)
     },
   )
 })

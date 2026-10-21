@@ -87,7 +87,6 @@ function DashboardPage() {
   )
 
   const [duration, setDuration] = useState('30')
-  const [hostKey, setHostKey] = useState('')
   const [creating, setCreating] = useState(false)
 
   const [createError, setCreateError] = useState<string | null>(null)
@@ -209,13 +208,6 @@ function DashboardPage() {
     setCreateError(null)
     setCreateSuccess(null)
 
-    if (!hostKey.trim()) {
-      setCreateError(
-        'Please enter your host access key.',
-      )
-      return
-    }
-
     const startDate = new Date(startsAt)
     const durationMinutes = Number(duration)
 
@@ -244,13 +236,10 @@ function DashboardPage() {
     setCreating(true)
 
     try {
-      const created = await slotsApi.create(
-        {
-          startsAt: startDate.toISOString(),
-          durationMinutes,
-        },
-        hostKey.trim(),
-      )
+      const created = await slotsApi.create({
+        startsAt: startDate.toISOString(),
+        durationMinutes,
+      })
 
       setCreateSuccess(
         `Your appointment on ${formatDate(created.startsAt)} at ${formatTime(created.startsAt)} was created successfully.`,
@@ -268,13 +257,6 @@ function DashboardPage() {
       ) {
         setCreateError(
           'This time overlaps an existing appointment. Please choose another time.',
-        )
-      } else if (
-        error instanceof ApiError &&
-        error.status === 401
-      ) {
-        setCreateError(
-          'Invalid host access key. Please check your key.',
         )
       } else if (
         error instanceof ApiError &&
@@ -394,34 +376,6 @@ function DashboardPage() {
                 onSubmit={(event) => void handleCreate(event)}
                 className="space-y-6"
               >
-                <div>
-                  <label
-                    htmlFor="host-key"
-                    className="mb-2 block text-sm font-semibold"
-                  >
-                    Host access key
-                  </label>
-
-                  <input
-                    id="host-key"
-                    type="password"
-                    autoComplete="off"
-                    required
-                    value={hostKey}
-                    onChange={(event) =>
-                      setHostKey(event.target.value)
-                    }
-                    placeholder="Enter your private host key"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
-                  />
-
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Required only for creating appointments.
-                    Your key is kept in memory and is not saved
-                    in local storage.
-                  </p>
-                </div>
-
                 <div>
                   <label
                     htmlFor="slot-start"

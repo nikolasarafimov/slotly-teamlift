@@ -7,8 +7,6 @@ import { Booking } from './entities/booking.entity';
 import { SlotsController } from './slots.controller';
 import { SlotsService } from './slots.service';
 
-import { HostKeyGuard } from './guards/host-key.guard';
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -21,7 +19,6 @@ import { HostKeyGuard } from './guards/host-key.guard';
   ],
   providers: [
     SlotsService,
-    HostKeyGuard,
   ],
   exports: [
     SlotsService,

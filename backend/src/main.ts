@@ -26,7 +26,6 @@ async function bootstrap() {
 
     allowedHeaders: [
       'Content-Type',
-      'X-Host-Key',
     ],
   });
 

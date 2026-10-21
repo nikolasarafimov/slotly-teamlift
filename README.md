@@ -1,85 +1,94 @@
 # Slotly — Scheduling Made Simple
 
-A modern, full-stack appointment scheduling application built with **React, TypeScript, NestJS, and PostgreSQL**.
+A full-stack appointment scheduling application built with **React, TypeScript, NestJS, and PostgreSQL**.
 
-Slotly makes it easy for a host to publish available time slots and for guests to reserve an appointment without creating an account. The application focuses on a straightforward booking experience, clear availability, and reliable server-side prevention of double bookings.
+Slotly lets a host publish appointment slots and lets guests reserve an available time using only their name and email address. The project emphasizes a straightforward, responsive interface, persistent storage, and reliable server-side prevention of conflicting appointments and double bookings.
 
-**Built for the TeamLift Product Engineer Internship Challenge (2026).**
+**Created for the TeamLift Product Engineer Internship Challenge (2026).**
 
 ## Live Demo
 
-| | Link |
+| Resource | Link |
 | --- | --- |
 | **Book an appointment** | [slotly-teamlift.vercel.app](https://slotly-teamlift.vercel.app/) |
-| **Host dashboard** | [slotly-teamlift.vercel.app/dashboard](https://slotly-teamlift.vercel.app/dashboard) |
-| **Backend API** | [slotly-api-zlfm.onrender.com/api](https://slotly-api-zlfm.onrender.com/api) |
-| **API health check** | [slotly-api-zlfm.onrender.com/api/health](https://slotly-api-zlfm.onrender.com/api/health) |
-| **Source code** | [github.com/nikolasarafimov/slotly-teamlift](https://github.com/nikolasarafimov/slotly-teamlift) |
+| **Create and manage slots** | [Slotly Dashboard](https://slotly-teamlift.vercel.app/dashboard) |
+| **Backend API** | [Slotly REST API](https://slotly-api-zlfm.onrender.com/api) |
+| **API health check** | [Health endpoint](https://slotly-api-zlfm.onrender.com/api/health) |
+| **Source code** | [GitHub repository](https://github.com/nikolasarafimov/slotly-teamlift) |
 
-> **Demo hosting:** The backend runs on a Render free instance, which can spin down during inactivity. The first request after an idle period may take longer than usual. The demo database uses a time-limited free plan; availability of the live demo may change.
+> **Reviewer quick start:** Open the [Dashboard](https://slotly-teamlift.vercel.app/dashboard), create a future time slot, then open the [Booking Page](https://slotly-teamlift.vercel.app/) and reserve it with a test name and email address. Return to the Dashboard and refresh to see its status change to **booked**. **No login, account, or access key is required.**
+>
+> **Demo hosting:** The backend uses a free Render instance, which may need time to wake after inactivity. The free PostgreSQL instance has a limited lifetime and is not intended for permanent, business-critical data storage.
 
 ## Features
 
-### For guests
+### Appointment booking
 
-- Browse open appointment slots grouped by date.
-- View start times and durations in the browser's local time zone.
-- Reserve an appointment by entering a name and email address — **no account required**.
-- See a booking confirmation with the appointment details and booking ID.
-- Refresh availability and receive clear loading, empty, success, and error states.
-- Use a responsive interface on mobile, tablet, and desktop.
+- Browse available future time slots grouped by date.
+- View appointment start times, end times, and durations in the visitor's local time zone.
+- Book an open slot using a name and email address, without registering or logging in.
+- Receive an on-page confirmation with appointment details and a booking ID.
+- Refresh availability and see clear loading, empty, success, and error states.
+- Use the booking interface on desktop, tablet, and mobile screens.
 
-### For the host
+### Scheduling dashboard
 
-- Create future appointments with a start date/time and duration (15–240 minutes).
-- Access slot creation through a server-validated **host access key**.
-- Review all slots in the dashboard and filter by available, booked, or expired status.
-- View summary counts for total, available, and booked appointments.
-- Receive validation feedback when a new slot overlaps an existing one.
+- Create future appointment slots with a date, start time, and duration from **15 to 240 minutes**.
+- Review all created slots and filter by **available**, **booked**, or **expired**.
+- See counts of total, available, and booked appointments.
+- Receive feedback when an appointment overlaps an existing slot or fails validation.
+- Test the full scheduling workflow without authentication, as specified by the challenge.
 
-### Reliability and security
+### Data integrity and API reliability
 
-- Persist slots and bookings in PostgreSQL.
-- Prevent overlapping slot creation using PostgreSQL advisory transaction locks.
-- Prevent double booking using an atomic conditional update inside a transaction and a unique database constraint on the booking's slot ID.
-- Validate request payloads using NestJS DTOs and `ValidationPipe`.
-- Limit API request rates with NestJS Throttler.
-- Apply HTTP security headers using Helmet and restrict browser origins through CORS.
-- Manage database schema changes through versioned TypeORM migrations.
+- Store slots and reservations in PostgreSQL.
+- Reject overlapping slot creation using a PostgreSQL advisory transaction lock and an overlap query.
+- Prevent double bookings with an atomic conditional database update inside a transaction.
+- Enforce a unique booking-to-slot relationship at the database level.
+- Validate API input using NestJS DTOs, `class-validator`, and a global `ValidationPipe`.
+- Apply HTTP security headers with Helmet, configure CORS, and use API rate limiting.
+- Maintain the database schema through versioned TypeORM migrations.
 
 ## Tech Stack
 
 | Layer | Technologies |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, Lucide React |
-| Backend | NestJS 12, TypeScript, REST API, class-validator |
-| Data access | TypeORM, PostgreSQL 17 |
-| Local development | Node.js, npm, Docker Compose |
-| Deployment | Vercel (frontend), Render (API and PostgreSQL) |
-| Testing and tooling | Node.js test runner, Jest configuration, ESLint, Oxlint, TypeScript |
+| Backend | NestJS 12, TypeScript, REST API, `class-validator` |
+| Database and ORM | PostgreSQL 17, TypeORM |
+| Testing and quality | Node.js test runner, Jest configuration, ESLint, Oxlint, TypeScript |
+| Local development | Node.js 24, npm, Docker Compose |
+| Deployment | Vercel (frontend), Render (backend and PostgreSQL) |
 
 ## Architecture
 
 ```text
-Guest / Host
-     |
-     v
-React + TypeScript (Vercel)
-     |
-     | HTTPS / REST
-     v
-NestJS API (Render)
-     |
-     | TypeORM / transactions
-     v
-PostgreSQL (Render)
+                          Guest / Host
+                               |
+                               v
+                   React + TypeScript (Vercel)
+                  Booking Page / Host Dashboard
+                               |
+                         HTTPS / JSON
+                               |
+                               v
+                         NestJS REST API
+                             (Render)
+                               |
+                  Validation + Transactions
+                               |
+                               v
+                        PostgreSQL Database
+                             (Render)
 ```
 
-The frontend requests available slots from the API. When a guest submits a booking, the backend atomically marks the selected slot as booked and stores the reservation in the same transaction. If another request has already claimed the slot, the API rejects the later request with `409 Conflict`.
+The React application calls the NestJS API to create slots, fetch availability, and make bookings. The API is responsible for all database writes and validates requests before processing them.
 
-The dashboard is a public page, but **creating slots requires a host key**. Reading slot metadata and guest booking do not require authentication.
+When two guests attempt to reserve the same slot, the backend performs an atomic update that only succeeds if the slot is still available. Exactly one request can claim the slot; a subsequent conflicting request receives **`409 Conflict`**. The booking record and slot update are saved in a transaction.
 
-## Repository Structure
+**Access model:** The Booking Page and Dashboard are both public in this challenge demo. No user accounts or host access keys are required. A real multi-user production application would require proper host authentication and authorization before allowing anyone to manage availability.
+
+## Project Structure
 
 ```text
 slotly-teamlift/
@@ -93,13 +102,14 @@ slotly-teamlift/
 │   │   ├── slots/
 │   │   │   ├── dto/
 │   │   │   ├── entities/
-│   │   │   ├── guards/
 │   │   │   ├── slots.controller.ts
+│   │   │   ├── slots.module.ts
 │   │   │   └── slots.service.ts
 │   │   ├── app.module.ts
 │   │   ├── db-health.controller.ts
 │   │   └── main.ts
-│   └── .env.example
+│   ├── .env.example
+│   └── package.json
 ├── frontend/
 │   ├── src/
 │   │   ├── lib/
@@ -108,14 +118,15 @@ slotly-teamlift/
 │   │   │   └── DashboardPage.tsx
 │   │   ├── types/
 │   │   └── App.tsx
+│   ├── .env.example
 │   ├── vercel.json
-│   └── .env.example
+│   └── package.json
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md
 ```
 
-## Getting Started Locally
+## Run Locally
 
 ### Prerequisites
 
@@ -130,7 +141,7 @@ git clone https://github.com/nikolasarafimov/slotly-teamlift.git
 cd slotly-teamlift
 ```
 
-### 2. Start PostgreSQL
+### 2. Start the local database
 
 From the repository root:
 
@@ -138,9 +149,9 @@ From the repository root:
 docker compose up -d
 ```
 
-The local Docker configuration exposes PostgreSQL on `127.0.0.1:5433`, with database name and user `slotly`.
+The Docker Compose configuration runs PostgreSQL 17 with a local development database called `slotly`, accessible at `127.0.0.1:5433`.
 
-### 3. Configure and start the API
+### 3. Configure the backend
 
 ```bash
 cd backend
@@ -152,31 +163,32 @@ Create `backend/.env` using `backend/.env.example` as a template:
 ```dotenv
 NODE_ENV=development
 PORT=3000
+
 DB_HOST=127.0.0.1
 DB_PORT=5433
 DB_USERNAME=slotly
 DB_PASSWORD=slotly_dev_password
 DB_NAME=slotly
 DB_SSL=false
+
 FRONTEND_URL=http://localhost:5173
-HOST_ACCESS_KEY=replace-with-a-unique-random-secret-of-at-least-32-characters
 ```
 
-The local database credentials above match the repository's development-only Docker Compose configuration. **Do not reuse them in production.** Generate a strong, unique host key; do not commit real `.env` files.
+The database credentials above are **development-only values** from `docker-compose.yml`; do not reuse them for a hosted database or commit actual `.env` files.
 
-Start NestJS:
+Start the API:
 
 ```bash
 npm run start:dev
 ```
 
-The API is available at `http://localhost:3000/api`. Verify the database connection at `http://localhost:3000/api/health`.
+The backend runs at `http://localhost:3000/api`. Confirm its database connectivity at `http://localhost:3000/api/health`.
 
-> In development, TypeORM synchronizes entities with the local schema. Production disables synchronization and runs explicit migrations instead.
+In development, TypeORM can synchronize the local schema. Production disables automatic synchronization and uses migrations instead.
 
-### 4. Configure and start the frontend
+### 4. Configure the frontend
 
-In a separate terminal:
+In a separate terminal, from the repository root:
 
 ```bash
 cd frontend
@@ -189,37 +201,38 @@ Create `frontend/.env.local`:
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
-Start Vite:
+Start the application:
 
 ```bash
 npm run dev
 ```
 
-Open:
+Visit:
 
-- Booking page: `http://localhost:5173/`
-- Host dashboard: `http://localhost:5173/dashboard`
+- **Booking Page:** `http://localhost:5173/`
+- **Dashboard:** `http://localhost:5173/dashboard`
 
-Enter the host key configured in `backend/.env` when creating a slot from the dashboard. Guests do not need the key to make a booking.
+You can create slots and book appointments directly; neither operation requires an account or an access key.
 
 ## API Reference
 
 **Production base URL:** `https://slotly-api-zlfm.onrender.com/api`
 
-| Method | Endpoint | Access | Purpose |
+| Method | Endpoint | Access | Description |
 | --- | --- | --- | --- |
-| `GET` | `/health` | Public | Check API and database connectivity |
+| `GET` | `/health` | Public | Check API and PostgreSQL connectivity |
 | `GET` | `/slots` | Public | List future, unbooked slots |
 | `GET` | `/slots/all` | Public | List all slots, including booked and expired |
-| `POST` | `/slots` | Host key | Create an appointment slot |
-| `POST` | `/slots/:id/book` | Public | Book a slot using name and email |
+| `POST` | `/slots` | Public | Create a future appointment slot |
+| `POST` | `/slots/:id/book` | Public | Reserve a slot using a name and email address |
 
 ### Create a slot
+
+**Request**
 
 ```http
 POST /api/slots
 Content-Type: application/json
-X-Host-Key: YOUR_HOST_KEY
 ```
 
 ```json
@@ -229,12 +242,22 @@ X-Host-Key: YOUR_HOST_KEY
 }
 ```
 
-The `startsAt` value must include a time zone and represent a future instant. Existing overlapping intervals are rejected.
+`startsAt` must be a future ISO 8601 datetime including a time zone. The API accepts integer durations from 15 to 240 minutes and rejects any interval that overlaps an existing slot.
 
-**Success:** `201 Created`  
-**Typical errors:** `400 Bad Request`, `401 Unauthorized`, `409 Conflict`, `429 Too Many Requests`
+- **Success:** `201 Created`
+- **Possible errors:** `400 Bad Request`, `409 Conflict`, `429 Too Many Requests`
+
+### List available slots
+
+```http
+GET /api/slots
+```
+
+Returns only future slots that have not yet been booked. The dashboard additionally uses `GET /api/slots/all` to display slot history and statuses.
 
 ### Book a slot
+
+**Request**
 
 ```http
 POST /api/slots/{slotId}/book
@@ -248,14 +271,14 @@ Content-Type: application/json
 }
 ```
 
-A successful request returns a booking record and the updated slot. A second request for the same already-booked slot returns `409 Conflict`.
+A successful request returns an on-page confirmation payload containing the new booking and updated slot.
 
-**Success:** `201 Created`  
-**Typical errors:** `400 Bad Request`, `404 Not Found`, `409 Conflict`, `429 Too Many Requests`
+- **Success:** `201 Created`
+- **Possible errors:** `400 Bad Request`, `404 Not Found`, `409 Conflict`, `429 Too Many Requests`
 
-### Time zones
+### Date and time handling
 
-Slot start times are stored as PostgreSQL `timestamptz` values and transferred as ISO 8601 timestamps. The frontend displays times using the visitor's browser time zone, avoiding hard-coded UTC offsets.
+Appointment start times are stored as PostgreSQL `timestamptz` values and exchanged as ISO 8601 timestamps. The frontend formats start and end times in the visitor's browser time zone using the JavaScript `Intl.DateTimeFormat` API.
 
 ## Testing and Quality Checks
 
@@ -277,102 +300,111 @@ npm run build
 
 ### API integration tests
 
-The repository includes `backend/scripts/api-smoke.test.mjs`, using the built-in Node.js test runner. Its seven scenarios cover:
+The repository includes `backend/scripts/api-smoke.test.mjs`, which uses the built-in Node.js test runner. The seven integration scenarios cover:
 
-1. Rejection of slot creation without a host key.
-2. Successful creation of a future slot.
-3. Rejection of overlapping slots.
+1. Rejection of invalid slot duration.
+2. Successful creation of a future slot without authentication.
+3. Rejection of overlapping appointments.
 4. Retrieval of available slots.
-5. Two concurrent booking attempts, of which only one succeeds.
-6. Removal of a booked slot from public availability.
-7. Preservation of booked slots in dashboard history.
+5. Two concurrent booking attempts, with one success and one conflict.
+6. Removal of the booked slot from public availability.
+7. Preservation of the booked slot in dashboard history.
 
-**Use a separate test database**, not a live or production database. For example, run a local backend instance on port `3100` with `DB_NAME=slotly_test`, then run the tests from another terminal.
+**Run these tests only against a separate local test database.** They create actual slots and bookings and must not target the deployed production database.
 
-PowerShell example:
+For example, create a `slotly_test` PostgreSQL database, then run a separate backend instance pointed at it on port `3100`:
 
 ```powershell
 cd backend
+$env:NODE_ENV = 'development'
+$env:DB_NAME = 'slotly_test'
+$env:PORT = '3100'
+npm run start:dev
+```
+
+In another PowerShell terminal, from `backend/`:
+
+```powershell
 $env:TEST_API_URL = 'http://localhost:3100/api'
-$env:HOST_ACCESS_KEY = Read-Host 'Enter the test host key'
 node --test scripts/api-smoke.test.mjs
 ```
 
-These integration tests create actual data and should only target a disposable local test environment.
+The test database should be disposable and independent from both the primary local database and the hosted Render database.
 
 ## Database Migrations
 
-The initial schema migration is located in:
+The initial schema migration is located at:
 
 ```text
 backend/database/migrations/1792531200000-initial-slotly-schema.cjs
 ```
 
-Available commands, from `backend/`:
+From the `backend` directory:
 
 ```bash
 npm run db:migrate:show
 npm run db:migrate
 ```
 
-The production database starts empty. Render runs pending migrations before starting the API:
+Production deployment runs pending migrations before starting NestJS:
 
 ```bash
 npm run db:migrate && npm run start:prod
 ```
 
-**Do not run the initial migration against an existing development database whose tables were already created with `synchronize: true`.** Do not execute destructive rollback commands against a database containing real bookings.
+Migration execution is recorded in PostgreSQL so already-applied migrations are not rerun. Production uses `synchronize: false`.
+
+> **Safety note:** The initial migration is intended for an empty database. Do not run it against an existing development database whose tables were created by TypeORM synchronization. Avoid destructive rollbacks on databases containing bookings.
 
 ## Deployment
 
 ### Frontend — Vercel
 
-- Root directory: `frontend`
-- Framework: Vite
-- Install command: `npm ci`
-- Build command: `npm run build`
-- Output directory: `dist`
-- Environment variable:
+- **Root directory:** `frontend`
+- **Framework:** Vite
+- **Install command:** `npm ci`
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- **Environment variable:**
 
 ```dotenv
 VITE_API_BASE_URL=https://slotly-api-zlfm.onrender.com/api
 ```
 
-`frontend/vercel.json` contains an SPA rewrite so direct visits to `/dashboard` work.
+`frontend/vercel.json` configures an SPA rewrite so the `/dashboard` route works when opened directly or refreshed.
 
 ### Backend — Render
 
-- Root directory: `backend`
-- Build command: `npm ci --include=dev && npm run build`
-- Start command: `npm run db:migrate && npm run start:prod`
-- Node.js runtime: 24
-- `NODE_ENV=production` (TypeORM schema synchronization disabled)
-- `FRONTEND_URL=https://slotly-teamlift.vercel.app`
-- Configure `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `DB_NAME` using the actual Render PostgreSQL connection details.
-- Store `HOST_ACCESS_KEY` in Render environment settings, never in the frontend bundle or source control.
+- **Root directory:** `backend`
+- **Build command:** `npm ci --include=dev && npm run build`
+- **Start command:** `npm run db:migrate && npm run start:prod`
+- **Node.js runtime:** 24
+- **Environment variables:** `NODE_ENV=production`, `FRONTEND_URL=https://slotly-teamlift.vercel.app`, and the PostgreSQL connection settings (`DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL`).
+- **Database connectivity:** Use the PostgreSQL internal hostname and a Render region compatible with the API service.
 
-The PostgreSQL database and API should be hosted in the same Render region and use the internal database hostname. `DB_SSL=false` applies only to the trusted internal connection used by this deployment; external database connections may require TLS.
+Database credentials are configured in Render, not committed to the repository. The demo does **not** require or use a host access key.
 
 ## Security and Known Limitations
 
-- **Host-only writes:** Creating slots requires an access key checked by the backend. The dashboard page and slot listings are publicly accessible.
-- **Guest access:** Bookings require a name and email but no user account or email verification.
-- **No email delivery:** Successful bookings display an on-page confirmation; the app does not currently send confirmation emails.
-- **No calendar integration:** Google Calendar sync and automated meeting invitations are not implemented.
-- **Availability updates:** The UI fetches availability when loaded or manually refreshed. It does not use WebSockets; the backend remains authoritative when two clients attempt the same slot.
-- **Rate limiting:** The default in-memory limiter is intended for the single demo API instance, not a distributed production fleet.
-- **Demo infrastructure:** Free Render services may have cold starts, and free PostgreSQL hosting may expire or lack backups. Do not use the demo for sensitive or business-critical appointments.
-- **Scope:** The application does not yet support cancelling/rescheduling bookings or full host account authentication.
+- **Public demo workflow:** Both creating and booking slots are intentionally public to match the challenge's no-login requirement. Anyone with the link can create demo appointments. A real application would require host authentication and authorization.
+- **No email verification:** The guest enters a name and email address, but email ownership is not verified.
+- **No confirmation emails:** Successful bookings show an on-page confirmation only; emails are not sent.
+- **No calendar synchronization:** Google Calendar integration and automated invitations are not implemented.
+- **No cancellation or rescheduling:** Existing bookings cannot currently be edited or cancelled through the interface.
+- **Availability refresh:** The UI fetches availability when loaded or manually refreshed. It does not use WebSockets or server-pushed updates; the backend resolves booking conflicts.
+- **Basic rate limiting:** The API uses in-memory limits intended for a single demonstration instance. This is not a substitute for authentication or dedicated abuse prevention.
+- **Demo infrastructure:** A free Render service may have cold starts, and free PostgreSQL hosting may expire or lack backups. Use test data only; do not treat this as a business-critical scheduling service.
 
 ## AI-Assisted Development Disclosure
 
-This project was developed with assistance from **OpenAI ChatGPT**. AI was used during planning and implementation to help with application structure, React and NestJS code, TypeScript and ESLint troubleshooting, SQL/TypeORM design, integration-testing scripts, deployment configuration, and technical documentation.
+**OpenAI ChatGPT** was used as a development assistant during the project. Assistance included planning the architecture, drafting React and NestJS implementations, troubleshooting TypeScript and ESLint issues, reasoning about database transactions and validation, designing integration tests, configuring deployment, and preparing technical documentation.
 
-The application was implemented through an iterative development workflow, with local execution, debugging, and validation of the backend, frontend, and database. AI-generated suggestions and code were treated as material to inspect and test, not as proof of correctness. The project author remains responsible for the final implementation and submission.
+The application was built iteratively in VS Code, with manual integration, debugging, and functional verification. Generated suggestions were reviewed through local builds, tests, and end-to-end checks rather than assumed correct. Responsibility for understanding the implementation and submitting the final project remains with the author.
 
 ## Author
 
-**Nikola Sarafimov**  
+**Nikola Sarafimov**
+
 GitHub: [@nikolasarafimov](https://github.com/nikolasarafimov)
 
 ---
